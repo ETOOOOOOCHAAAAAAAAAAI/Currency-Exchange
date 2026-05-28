@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS Currencies (
     sign VARCHAR
 );
 
-CREATE TABLE IF NOT EXISTS Excange_Rates (
+CREATE TABLE IF NOT EXISTS Exchange_Rates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     base_currency_id INTEGER,
     target_currency_id INTEGER,
