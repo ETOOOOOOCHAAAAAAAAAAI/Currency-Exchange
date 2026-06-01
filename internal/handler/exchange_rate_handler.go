@@ -1,17 +1,23 @@
 package handler
 
 import (
+	"Currency-exchange/internal/models"
 	"Currency-exchange/internal/repository"
 	"encoding/json"
 	"net/http"
+	"strconv"
 )
 
 type ExchangeRateHandler struct {
-	repo *repository.ExchangeRateRepository
+	repo         *repository.ExchangeRateRepository
+	currencyRepo *repository.CurrencyRepository
 }
 
-func NewExchangeRateHandler(repo *repository.ExchangeRateRepository) *ExchangeRateHandler {
-	return &ExchangeRateHandler{repo: repo}
+func NewExchangeRateHandler(repo *repository.ExchangeRateRepository, currencyRepo *repository.CurrencyRepository) *ExchangeRateHandler {
+	return &ExchangeRateHandler{repo: repo,
+		currencyRepo: currencyRepo,
+	}
+
 }
 
 func (h *ExchangeRateHandler) GetAllExchangeRate(w http.ResponseWriter, r *http.Request) {
@@ -49,6 +55,99 @@ func (h *ExchangeRateHandler) GetByCodeInExchangeRate(w http.ResponseWriter, r *
 		return
 	}
 	jsonBytes, err := json.Marshal(rate)
+	if err != nil {
+		http.Error(w, "Ошибка при формировании ответа", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonBytes)
+}
+
+func (h *ExchangeRateHandler) CreateNewExchangeRate(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Ошибка при чтении данных", http.StatusInternalServerError)
+		return
+	}
+	newBaseCurrencyCode := r.FormValue("baseCurrency") // FormValue настолько умный что сам вызвает ParseForm даже если ты его не вызвал но так полезно чтоб в слуаче мы могли поймать ошибку если у пользователя отвалился интернет в середине отправки формы например
+	newTargetCurrencyCode := r.FormValue("targetCurrency")
+	newRate := r.FormValue("rate")
+	if newBaseCurrencyCode == "" || newTargetCurrencyCode == "" || newRate == "" {
+		http.Error(w, "Неверный запрос", http.StatusBadRequest)
+		return
+	}
+	baseСurrency, err := h.currencyRepo.GetByCode(newBaseCurrencyCode)
+	if err != nil {
+		http.Error(w, "Такой валюты не существует", http.StatusNotFound)
+		return
+	}
+	targetCurrency, err := h.currencyRepo.GetByCode(newTargetCurrencyCode)
+	if err != nil {
+		http.Error(w, "Такой валюты не существует", http.StatusNotFound)
+		return
+	}
+	rateFloat, err := strconv.ParseFloat(newRate, 64)
+	if err != nil {
+		http.Error(w, "Ошибка при конвертации соотношения", http.StatusBadRequest)
+		return
+	}
+	e := models.ExcangeRate{BaseCurrency: baseСurrency, TargetCurrency: targetCurrency, Rate: rateFloat}
+	result, err := h.repo.CreateNewExchangeRate(e)
+	if err != nil {
+		http.Error(w, "Такое соотношение уже существует", http.StatusConflict)
+		return
+	}
+	jsonBytes, err := json.Marshal(result)
+	if err != nil {
+		http.Error(w, "Ошибка при формировании ответа", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write(jsonBytes)
+}
+
+func (h *ExchangeRateHandler) UpdateExchangeRate(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Ошибка при чтении формы", http.StatusInternalServerError)
+		return
+	}
+	codes := r.PathValue("codes")
+	if len(codes) != 6 {
+		http.Error(w, "Неверный формат кода валют", http.StatusBadRequest)
+		return
+	}
+	baseCurrencyCode := codes[:3]
+	targetCurrencyCode := codes[3:]
+	if baseCurrencyCode == targetCurrencyCode {
+		http.Error(w, "Одинаковый код валют", http.StatusBadRequest)
+		return
+	}
+	baseCurrency, err := h.currencyRepo.GetByCode(baseCurrencyCode)
+	if err != nil {
+		http.Error(w, "Такой валюты не существует", http.StatusNotFound)
+		return
+	}
+	targetCurrency, err := h.currencyRepo.GetByCode(targetCurrencyCode)
+	if err != nil {
+		http.Error(w, "Такой валюты не существует", http.StatusNotFound)
+		return
+	}
+	newRate := r.FormValue("rate")
+	rateFloat, err := strconv.ParseFloat(newRate, 64)
+	if err != nil {
+		http.Error(w, "Ошибка при конвертации соотнешия", http.StatusBadRequest)
+		return
+	}
+	e := models.ExcangeRate{BaseCurrency: baseCurrency, TargetCurrency: targetCurrency, Rate: rateFloat}
+	result, err := h.repo.UpdateExchangeRate(e)
+	if err != nil {
+		http.Error(w, "Соотшения не найден", http.StatusNotFound)
+		return
+	}
+	jsonBytes, err := json.Marshal(result)
 	if err != nil {
 		http.Error(w, "Ошибка при формировании ответа", http.StatusInternalServerError)
 		return

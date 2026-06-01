@@ -49,7 +49,7 @@ func (h *CurrencyHandler) GetCurrencyByCode(w http.ResponseWriter, r *http.Reque
 
 }
 
-func (h *CurrencyHandler) CreateCurrency(w http.ResponseWriter, r *http.Request) {
+func (h *CurrencyHandler) CreateNewCurrency(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		http.Error(w, "Ошибка при чтений данных", http.StatusInternalServerError)

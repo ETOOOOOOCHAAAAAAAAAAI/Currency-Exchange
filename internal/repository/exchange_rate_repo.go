@@ -3,6 +3,7 @@ package repository
 import (
 	"Currency-exchange/internal/models"
 	"database/sql"
+	"errors"
 	"fmt"
 )
 
@@ -77,3 +78,39 @@ func (r *ExchangeRateRepository) GetRateByCode(baseCode, targetCode string) (mod
 	}
 	return rate, nil
 }
+
+// создать POST для exchangeRate потом идти как обычно по плану repo -> handler ну и т.д
+func (r *ExchangeRateRepository) CreateNewExchangeRate(e models.ExcangeRate) (models.ExcangeRate, error) {
+	result, err := r.db.Exec(`INSERT INTO ExchangeRates (base_currency_id, target_currency_id, rate) 
+VALUES (?,?,?)`, e.BaseCurrency.ID, e.TargetCurrency.ID, e.Rate)
+	if err != nil {
+		return e, fmt.Errorf("Такая соотношения уже существует: %w", err)
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return e, fmt.Errorf("Ошибка при получений id: %w", err)
+	}
+	e.ID = id
+	return e, nil
+}
+
+// сделать обновление существующего курса PATCH
+func (r *ExchangeRateRepository) UpdateExchangeRate(e models.ExcangeRate) (models.ExcangeRate, error) {
+	result, err := r.db.Exec(`UPDATE ExchangeRates 
+		SET rate = ? 
+		WHERE base_currency_id = ? AND target_currency_id = ?`, e.Rate, e.BaseCurrency, e.TargetCurrency)
+
+	if err != nil {
+		return e, fmt.Errorf("Таких валют не существует: %w", err)
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return e, fmt.Errorf("Ошибка при получении данных: %w", err)
+	}
+	if count == 0 {
+		return e, errors.New("курс для этой пары не найден")
+	}
+	return e, nil
+}
+
+// написать самое важное - калькулятор
