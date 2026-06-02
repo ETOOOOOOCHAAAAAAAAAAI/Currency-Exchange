@@ -13,6 +13,14 @@ type ExchangeRateHandler struct {
 	currencyRepo *repository.CurrencyRepository
 }
 
+type ExchangeResponse struct {
+	BaseCurrency    models.Currency `json:"baseCurrency"`
+	TargetCurrency  models.Currency `json:"targetCurrency"`
+	Rate            float64         `json:"rate"`
+	Amount          float64         `json:"amount"`
+	ConvertedAmount float64         `json:"convertedAmount"`
+}
+
 func NewExchangeRateHandler(repo *repository.ExchangeRateRepository, currencyRepo *repository.CurrencyRepository) *ExchangeRateHandler {
 	return &ExchangeRateHandler{repo: repo,
 		currencyRepo: currencyRepo,
@@ -148,6 +156,66 @@ func (h *ExchangeRateHandler) UpdateExchangeRate(w http.ResponseWriter, r *http.
 		return
 	}
 	jsonBytes, err := json.Marshal(result)
+	if err != nil {
+		http.Error(w, "Ошибка при формировании ответа", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonBytes)
+}
+
+func (h *ExchangeRateHandler) ExchangeCalculator(w http.ResponseWriter, r *http.Request) {
+	from := r.URL.Query().Get("from")
+	to := r.URL.Query().Get("to")
+	amountStr := r.URL.Query().Get("amount")
+	if from == "" || to == "" || amountStr == "" {
+		http.Error(w, "Отсутствуют необходимые параметры запроса", http.StatusBadRequest)
+		return
+	}
+	amount, err := strconv.ParseFloat(amountStr, 64)
+	if err != nil {
+		http.Error(w, "Неверный формат суммы", http.StatusBadRequest) // Поправил текст
+		return
+	}
+	var finalRate float64
+	rate, err := h.repo.GetRateByCode(from, to)
+	if err == nil {
+		finalRate = rate.Rate
+	} else {
+		rateReverse, err := h.repo.GetRateByCode(to, from)
+		if err == nil {
+			finalRate = 1.0 / rateReverse.Rate
+		} else {
+			rateUSDFrom, err1 := h.repo.GetRateByCode("USD", from)
+			rateUSDTo, err2 := h.repo.GetRateByCode("USD", to)
+			if err1 == nil && err2 == nil {
+				finalRate = rateUSDTo.Rate / rateUSDFrom.Rate
+			} else {
+				http.Error(w, "Обменный курс для пары не найден", http.StatusNotFound)
+				return
+			}
+		}
+	}
+	convertedAmount := amount * finalRate
+	baseCurrency, err := h.currencyRepo.GetByCode(from)
+	if err != nil {
+		http.Error(w, "Базовая валюта не найдена", http.StatusNotFound)
+		return
+	}
+	targetCurrency, err := h.currencyRepo.GetByCode(to)
+	if err != nil {
+		http.Error(w, "Целевая валюта не найдена", http.StatusNotFound)
+		return
+	}
+	response := ExchangeResponse{
+		BaseCurrency:    baseCurrency,
+		TargetCurrency:  targetCurrency,
+		Rate:            finalRate,
+		Amount:          amount,
+		ConvertedAmount: convertedAmount,
+	}
+	jsonBytes, err := json.Marshal(response)
 	if err != nil {
 		http.Error(w, "Ошибка при формировании ответа", http.StatusInternalServerError)
 		return

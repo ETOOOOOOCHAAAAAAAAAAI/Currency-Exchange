@@ -112,5 +112,3 @@ func (r *ExchangeRateRepository) UpdateExchangeRate(e models.ExcangeRate) (model
 	}
 	return e, nil
 }
-
-// написать самое важное - калькулятор
