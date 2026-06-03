@@ -31,12 +31,12 @@ func NewExchangeRateHandler(repo *repository.ExchangeRateRepository, currencyRep
 func (h *ExchangeRateHandler) GetAllExchangeRate(w http.ResponseWriter, r *http.Request) {
 	rate, err := h.repo.GetAll()
 	if err != nil {
-		http.Error(w, "Ошибка при получений данных из обменника БД", http.StatusInternalServerError)
+		SendJSONError(w, "Ошибка при получений данных из обменника БД", http.StatusInternalServerError)
 		return
 	}
 	jsonBytes, err := json.Marshal(rate)
 	if err != nil {
-		http.Error(w, "Ошибка при формираваний ответа", http.StatusInternalServerError)
+		SendJSONError(w, "Ошибка при формираваний ответа", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -48,23 +48,23 @@ func (h *ExchangeRateHandler) GetAllExchangeRate(w http.ResponseWriter, r *http.
 func (h *ExchangeRateHandler) GetByCodeInExchangeRate(w http.ResponseWriter, r *http.Request) {
 	codes := r.PathValue("codes")
 	if len(codes) != 6 {
-		http.Error(w, "Неверный формат кода валют", http.StatusBadRequest)
+		SendJSONError(w, "Неверный формат кода валют", http.StatusBadRequest)
 		return
 	}
 	baseCode := codes[:3]
 	targetCode := codes[3:]
 	if baseCode == targetCode {
-		http.Error(w, "Одинаковый код валют", http.StatusBadRequest)
+		SendJSONError(w, "Одинаковый код валют", http.StatusBadRequest)
 		return
 	}
 	rate, err := h.repo.GetRateByCode(baseCode, targetCode)
 	if err != nil {
-		http.Error(w, "Код валют не найден", http.StatusNotFound)
+		SendJSONError(w, "Код валют не найден", http.StatusNotFound)
 		return
 	}
 	jsonBytes, err := json.Marshal(rate)
 	if err != nil {
-		http.Error(w, "Ошибка при формировании ответа", http.StatusInternalServerError)
+		SendJSONError(w, "Ошибка при формировании ответа", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -75,40 +75,44 @@ func (h *ExchangeRateHandler) GetByCodeInExchangeRate(w http.ResponseWriter, r *
 func (h *ExchangeRateHandler) CreateNewExchangeRate(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		http.Error(w, "Ошибка при чтении данных", http.StatusInternalServerError)
+		SendJSONError(w, "Ошибка при чтении данных", http.StatusInternalServerError)
 		return
 	}
-	newBaseCurrencyCode := r.FormValue("baseCurrency") // FormValue настолько умный что сам вызвает ParseForm даже если ты его не вызвал но так полезно чтоб в слуаче мы могли поймать ошибку если у пользователя отвалился интернет в середине отправки формы например
-	newTargetCurrencyCode := r.FormValue("targetCurrency")
+	newBaseCurrencyCode := r.FormValue("baseCurrencyCode")
+	newTargetCurrencyCode := r.FormValue("targetCurrencyCode")
+	if newBaseCurrencyCode == newTargetCurrencyCode {
+		SendJSONError(w, "Одинаковый код валют", http.StatusBadRequest)
+		return
+	}
 	newRate := r.FormValue("rate")
 	if newBaseCurrencyCode == "" || newTargetCurrencyCode == "" || newRate == "" {
-		http.Error(w, "Неверный запрос", http.StatusBadRequest)
+		SendJSONError(w, "Неверный запрос", http.StatusBadRequest)
 		return
 	}
 	baseСurrency, err := h.currencyRepo.GetByCode(newBaseCurrencyCode)
 	if err != nil {
-		http.Error(w, "Такой валюты не существует", http.StatusNotFound)
+		SendJSONError(w, "Такой валюты не существует", http.StatusNotFound)
 		return
 	}
 	targetCurrency, err := h.currencyRepo.GetByCode(newTargetCurrencyCode)
 	if err != nil {
-		http.Error(w, "Такой валюты не существует", http.StatusNotFound)
+		SendJSONError(w, "Такой валюты не существует", http.StatusNotFound)
 		return
 	}
 	rateFloat, err := strconv.ParseFloat(newRate, 64)
 	if err != nil {
-		http.Error(w, "Ошибка при конвертации соотношения", http.StatusBadRequest)
+		SendJSONError(w, "Ошибка при конвертации соотношения", http.StatusBadRequest)
 		return
 	}
 	e := models.ExcangeRate{BaseCurrency: baseСurrency, TargetCurrency: targetCurrency, Rate: rateFloat}
 	result, err := h.repo.CreateNewExchangeRate(e)
 	if err != nil {
-		http.Error(w, "Такое соотношение уже существует", http.StatusConflict)
+		SendJSONError(w, "Такое соотношение уже существует", http.StatusConflict)
 		return
 	}
 	jsonBytes, err := json.Marshal(result)
 	if err != nil {
-		http.Error(w, "Ошибка при формировании ответа", http.StatusInternalServerError)
+		SendJSONError(w, "Ошибка при формировании ответа", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -119,45 +123,45 @@ func (h *ExchangeRateHandler) CreateNewExchangeRate(w http.ResponseWriter, r *ht
 func (h *ExchangeRateHandler) UpdateExchangeRate(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		http.Error(w, "Ошибка при чтении формы", http.StatusInternalServerError)
+		SendJSONError(w, "Ошибка при чтении формы", http.StatusInternalServerError)
 		return
 	}
 	codes := r.PathValue("codes")
 	if len(codes) != 6 {
-		http.Error(w, "Неверный формат кода валют", http.StatusBadRequest)
+		SendJSONError(w, "Неверный формат кода валют", http.StatusBadRequest)
 		return
 	}
 	baseCurrencyCode := codes[:3]
 	targetCurrencyCode := codes[3:]
 	if baseCurrencyCode == targetCurrencyCode {
-		http.Error(w, "Одинаковый код валют", http.StatusBadRequest)
+		SendJSONError(w, "Одинаковый код валют", http.StatusBadRequest)
 		return
 	}
 	baseCurrency, err := h.currencyRepo.GetByCode(baseCurrencyCode)
 	if err != nil {
-		http.Error(w, "Такой валюты не существует", http.StatusNotFound)
+		SendJSONError(w, "Такой валюты не существует", http.StatusNotFound)
 		return
 	}
 	targetCurrency, err := h.currencyRepo.GetByCode(targetCurrencyCode)
 	if err != nil {
-		http.Error(w, "Такой валюты не существует", http.StatusNotFound)
+		SendJSONError(w, "Такой валюты не существует", http.StatusNotFound)
 		return
 	}
 	newRate := r.FormValue("rate")
 	rateFloat, err := strconv.ParseFloat(newRate, 64)
 	if err != nil {
-		http.Error(w, "Ошибка при конвертации соотнешия", http.StatusBadRequest)
+		SendJSONError(w, "Ошибка при конвертации соотнешия", http.StatusBadRequest)
 		return
 	}
 	e := models.ExcangeRate{BaseCurrency: baseCurrency, TargetCurrency: targetCurrency, Rate: rateFloat}
 	result, err := h.repo.UpdateExchangeRate(e)
 	if err != nil {
-		http.Error(w, "Соотшения не найден", http.StatusNotFound)
+		SendJSONError(w, "Соотшения не найден", http.StatusNotFound)
 		return
 	}
 	jsonBytes, err := json.Marshal(result)
 	if err != nil {
-		http.Error(w, "Ошибка при формировании ответа", http.StatusInternalServerError)
+		SendJSONError(w, "Ошибка при формировании ответа", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -170,12 +174,12 @@ func (h *ExchangeRateHandler) ExchangeCalculator(w http.ResponseWriter, r *http.
 	to := r.URL.Query().Get("to")
 	amountStr := r.URL.Query().Get("amount")
 	if from == "" || to == "" || amountStr == "" {
-		http.Error(w, "Отсутствуют необходимые параметры запроса", http.StatusBadRequest)
+		SendJSONError(w, "Отсутствуют необходимые параметры запроса", http.StatusBadRequest)
 		return
 	}
 	amount, err := strconv.ParseFloat(amountStr, 64)
 	if err != nil {
-		http.Error(w, "Неверный формат суммы", http.StatusBadRequest) // Поправил текст
+		SendJSONError(w, "Неверный формат суммы", http.StatusBadRequest)
 		return
 	}
 	var finalRate float64
@@ -192,7 +196,7 @@ func (h *ExchangeRateHandler) ExchangeCalculator(w http.ResponseWriter, r *http.
 			if err1 == nil && err2 == nil {
 				finalRate = rateUSDTo.Rate / rateUSDFrom.Rate
 			} else {
-				http.Error(w, "Обменный курс для пары не найден", http.StatusNotFound)
+				SendJSONError(w, "Обменный курс для пары не найден", http.StatusNotFound)
 				return
 			}
 		}
@@ -200,12 +204,12 @@ func (h *ExchangeRateHandler) ExchangeCalculator(w http.ResponseWriter, r *http.
 	convertedAmount := amount * finalRate
 	baseCurrency, err := h.currencyRepo.GetByCode(from)
 	if err != nil {
-		http.Error(w, "Базовая валюта не найдена", http.StatusNotFound)
+		SendJSONError(w, "Базовая валюта не найдена", http.StatusNotFound)
 		return
 	}
 	targetCurrency, err := h.currencyRepo.GetByCode(to)
 	if err != nil {
-		http.Error(w, "Целевая валюта не найдена", http.StatusNotFound)
+		SendJSONError(w, "Целевая валюта не найдена", http.StatusNotFound)
 		return
 	}
 	response := ExchangeResponse{
@@ -217,7 +221,7 @@ func (h *ExchangeRateHandler) ExchangeCalculator(w http.ResponseWriter, r *http.
 	}
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		http.Error(w, "Ошибка при формировании ответа", http.StatusInternalServerError)
+		SendJSONError(w, "Ошибка при формировании ответа", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
