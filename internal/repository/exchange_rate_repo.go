@@ -20,7 +20,7 @@ func (r *ExchangeRateRepository) GetAll() ([]models.ExcangeRate, error) {
 		    er.id, er.rate,
 		    bc.id, bc.code, bc.full_name, bc.sign,
 		    tc.id, tc.code, tc.full_name, tc.sign
-	    FROM ExchangeRates er
+	    FROM Exchange_Rates er
 		JOIN Currencies bc ON er.base_currency_id = bc.id
 		JOIN Currencies tc ON er.target_currency_id = tc.id`)
 	if err != nil {
@@ -59,7 +59,7 @@ func (r *ExchangeRateRepository) GetRateByCode(baseCode, targetCode string) (mod
 		    er.id, er.rate,
 		    bc.id, bc.code, bc.full_name, bc.sign,
 		    tc.id, tc.code, tc.full_name, tc.sign
-	    FROM ExchangeRates er
+	    FROM Exchange_Rates er
 		JOIN Currencies bc ON er.base_currency_id = bc.id
 		JOIN Currencies tc ON er.target_currency_id = tc.id
 		WHERE bc.code = ? and tc.code = ?`, baseCode, targetCode).Scan(&rate.ID,
@@ -79,9 +79,8 @@ func (r *ExchangeRateRepository) GetRateByCode(baseCode, targetCode string) (mod
 	return rate, nil
 }
 
-// создать POST для exchangeRate потом идти как обычно по плану repo -> handler ну и т.д
 func (r *ExchangeRateRepository) CreateNewExchangeRate(e models.ExcangeRate) (models.ExcangeRate, error) {
-	result, err := r.db.Exec(`INSERT INTO ExchangeRates (base_currency_id, target_currency_id, rate) 
+	result, err := r.db.Exec(`INSERT INTO Exchange_Rates (base_currency_id, target_currency_id, rate) 
 VALUES (?,?,?)`, e.BaseCurrency.ID, e.TargetCurrency.ID, e.Rate)
 	if err != nil {
 		return e, fmt.Errorf("Такая соотношения уже существует: %w", err)
@@ -94,11 +93,10 @@ VALUES (?,?,?)`, e.BaseCurrency.ID, e.TargetCurrency.ID, e.Rate)
 	return e, nil
 }
 
-// сделать обновление существующего курса PATCH
 func (r *ExchangeRateRepository) UpdateExchangeRate(e models.ExcangeRate) (models.ExcangeRate, error) {
-	result, err := r.db.Exec(`UPDATE ExchangeRates 
+	result, err := r.db.Exec(`UPDATE Exchange_Rates 
 		SET rate = ? 
-		WHERE base_currency_id = ? AND target_currency_id = ?`, e.Rate, e.BaseCurrency, e.TargetCurrency)
+		WHERE base_currency_id = ? AND target_currency_id = ?`, e.Rate, e.BaseCurrency.ID, e.TargetCurrency.ID)
 
 	if err != nil {
 		return e, fmt.Errorf("Таких валют не существует: %w", err)
