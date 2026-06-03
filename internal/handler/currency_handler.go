@@ -2,78 +2,59 @@ package handler
 
 import (
 	"Currency-exchange/internal/models"
-	"Currency-exchange/internal/repository"
+	"Currency-exchange/internal/service"
 	"encoding/json"
 	"net/http"
 )
 
 type CurrencyHandler struct {
-	repo *repository.CurrencyRepository
+	service *service.CurrencyService
 }
 
-func NewCurrencyHandler(repo *repository.CurrencyRepository) *CurrencyHandler {
-	return &CurrencyHandler{repo: repo}
+func NewCurrencyHandler(service *service.CurrencyService) *CurrencyHandler {
+	return &CurrencyHandler{service: service}
 }
 
 func (h *CurrencyHandler) GetAllCurrencies(w http.ResponseWriter, r *http.Request) {
-	currencies, err := h.repo.GetAll()
+	currencies, err := h.service.GetAllCurrencies()
 	if err != nil {
 		SendJSONError(w, "Ошибка при получении валют из БД", http.StatusInternalServerError)
 		return
 	}
-	jsonBytes, err := json.Marshal(currencies)
-	if err != nil {
-		SendJSONError(w, "Ошибка при формировании ответа", http.StatusInternalServerError)
-		return
-	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(jsonBytes)
+	json.NewEncoder(w).Encode(currencies)
 }
 
 func (h *CurrencyHandler) GetCurrencyByCode(w http.ResponseWriter, r *http.Request) {
 	code := r.PathValue("code")
-	codeCurrency, err := h.repo.GetByCode(code)
+	codeCurrency, err := h.service.GetCurrencyByCode(code)
 	if err != nil {
 		SendJSONError(w, "Валюта не найдена", http.StatusNotFound)
 		return
 	}
-	jsonBytes, err := json.Marshal(codeCurrency)
-	if err != nil {
-		SendJSONError(w, "Ошибка при формировании ответа", http.StatusInternalServerError)
-		return
-	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(jsonBytes)
-
+	json.NewEncoder(w).Encode(codeCurrency)
 }
 
 func (h *CurrencyHandler) CreateNewCurrency(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
-	if err != nil {
+	if err := r.ParseForm(); err != nil {
 		SendJSONError(w, "Ошибка при чтений данных", http.StatusInternalServerError)
 		return
 	}
-	newCode := r.FormValue("code")
-	newName := r.FormValue("name")
-	newSign := r.FormValue("sign")
+	newCode, newName, newSign := r.FormValue("code"), r.FormValue("name"), r.FormValue("sign")
 	if newCode == "" || newName == "" || newSign == "" {
 		SendJSONError(w, "Неверный запрос", http.StatusBadRequest)
 		return
 	}
 	c := models.Currency{Code: newCode, FullName: newName, Sign: newSign}
-	result, err := h.repo.CreateCurrencies(c)
+	result, err := h.service.CreateCurrency(c)
 	if err != nil {
 		SendJSONError(w, "Такая валюта уже существует", http.StatusConflict)
 		return
 	}
-	jsonBytes, err := json.Marshal(result)
-	if err != nil {
-		SendJSONError(w, "Ошибка при формировании ответа", http.StatusInternalServerError)
-		return
-	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	w.Write(jsonBytes)
+	json.NewEncoder(w).Encode(result)
 }
