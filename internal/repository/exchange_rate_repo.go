@@ -15,7 +15,7 @@ func NewExchangeRateRepository(db *sql.DB) *ExchangeRateRepository {
 	return &ExchangeRateRepository{db: db}
 }
 
-func (r *ExchangeRateRepository) GetAll() ([]models.ExcangeRate, error) {
+func (r *ExchangeRateRepository) GetAll() ([]models.ExchangeRate, error) {
 	rows, err := r.db.Query(`SELECT
 		    er.id, er.rate,
 		    bc.id, bc.code, bc.full_name, bc.sign,
@@ -27,9 +27,9 @@ func (r *ExchangeRateRepository) GetAll() ([]models.ExcangeRate, error) {
 		return nil, fmt.Errorf("Ошибка при запросе обменника: %w", err)
 	}
 	defer rows.Close()
-	var exchangeRate []models.ExcangeRate
+	var exchangeRate []models.ExchangeRate
 	for rows.Next() {
-		var rate models.ExcangeRate
+		var rate models.ExchangeRate
 		err := rows.Scan(
 			&rate.ID,
 			&rate.Rate,
@@ -53,8 +53,8 @@ func (r *ExchangeRateRepository) GetAll() ([]models.ExcangeRate, error) {
 	return exchangeRate, nil
 }
 
-func (r *ExchangeRateRepository) GetRateByCode(baseCode, targetCode string) (models.ExcangeRate, error) {
-	var rate models.ExcangeRate
+func (r *ExchangeRateRepository) GetRateByCode(baseCode, targetCode string) (models.ExchangeRate, error) {
+	var rate models.ExchangeRate
 	err := r.db.QueryRow(`SELECT
 		    er.id, er.rate,
 		    bc.id, bc.code, bc.full_name, bc.sign,
@@ -79,7 +79,7 @@ func (r *ExchangeRateRepository) GetRateByCode(baseCode, targetCode string) (mod
 	return rate, nil
 }
 
-func (r *ExchangeRateRepository) CreateNewExchangeRate(e models.ExcangeRate) (models.ExcangeRate, error) {
+func (r *ExchangeRateRepository) CreateNewExchangeRate(e models.ExchangeRate) (models.ExchangeRate, error) {
 	result, err := r.db.Exec(`INSERT INTO Exchange_Rates (base_currency_id, target_currency_id, rate) 
 VALUES (?,?,?)`, e.BaseCurrency.ID, e.TargetCurrency.ID, e.Rate)
 	if err != nil {
@@ -93,7 +93,7 @@ VALUES (?,?,?)`, e.BaseCurrency.ID, e.TargetCurrency.ID, e.Rate)
 	return e, nil
 }
 
-func (r *ExchangeRateRepository) UpdateExchangeRate(e models.ExcangeRate) (models.ExcangeRate, error) {
+func (r *ExchangeRateRepository) UpdateExchangeRate(e models.ExchangeRate) (models.ExchangeRate, error) {
 	result, err := r.db.Exec(`UPDATE Exchange_Rates 
 		SET rate = ? 
 		WHERE base_currency_id = ? AND target_currency_id = ?`, e.Rate, e.BaseCurrency.ID, e.TargetCurrency.ID)

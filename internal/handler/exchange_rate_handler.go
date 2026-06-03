@@ -20,7 +20,7 @@ func NewExchangeRateHandler(exchangeService *service.ExchangeService, currencySe
 func (h *ExchangeRateHandler) GetAllExchangeRate(w http.ResponseWriter, r *http.Request) {
 	rates, err := h.exchangeService.GetAllExchangeRates()
 	if err != nil {
-		SendJSONError(w, "Ошибка при получений данных", http.StatusInternalServerError)
+		SendJSONError(w, "Ошибка при получении данных", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -80,7 +80,7 @@ func (h *ExchangeRateHandler) CreateNewExchangeRate(w http.ResponseWriter, r *ht
 		SendJSONError(w, "Ошибка при конвертации соотношения", http.StatusBadRequest)
 		return
 	}
-	e := models.ExcangeRate{BaseCurrency: baseCurrency, TargetCurrency: targetCurrency, Rate: rateFloat}
+	e := models.ExchangeRate{BaseCurrency: baseCurrency, TargetCurrency: targetCurrency, Rate: rateFloat}
 	result, err := h.exchangeService.CreateExchangeRate(e)
 	if err != nil {
 		SendJSONError(w, "Такое соотношение уже существует", http.StatusConflict)
@@ -122,7 +122,7 @@ func (h *ExchangeRateHandler) UpdateExchangeRate(w http.ResponseWriter, r *http.
 		SendJSONError(w, "Ошибка при конвертации", http.StatusBadRequest)
 		return
 	}
-	e := models.ExcangeRate{BaseCurrency: baseCurrency, TargetCurrency: targetCurrency, Rate: rateFloat}
+	e := models.ExchangeRate{BaseCurrency: baseCurrency, TargetCurrency: targetCurrency, Rate: rateFloat}
 	result, err := h.exchangeService.UpdateExchangeRate(e)
 	if err != nil {
 		SendJSONError(w, "Соотношение не найдено", http.StatusNotFound)

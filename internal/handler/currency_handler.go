@@ -40,7 +40,7 @@ func (h *CurrencyHandler) GetCurrencyByCode(w http.ResponseWriter, r *http.Reque
 
 func (h *CurrencyHandler) CreateNewCurrency(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		SendJSONError(w, "Ошибка при чтений данных", http.StatusInternalServerError)
+		SendJSONError(w, "Ошибка при чтении данных", http.StatusInternalServerError)
 		return
 	}
 	newCode, newName, newSign := r.FormValue("code"), r.FormValue("name"), r.FormValue("sign")

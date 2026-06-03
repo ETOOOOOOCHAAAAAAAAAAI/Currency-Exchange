@@ -16,19 +16,19 @@ func NewExchangeService(repo *repository.ExchangeRateRepository, currencyRepo *r
 	return &ExchangeService{repo: repo, currencyRepo: currencyRepo}
 }
 
-func (s *ExchangeService) GetAllExchangeRates() ([]models.ExcangeRate, error) {
+func (s *ExchangeService) GetAllExchangeRates() ([]models.ExchangeRate, error) {
 	return s.repo.GetAll()
 }
 
-func (s *ExchangeService) GetRateByCode(base, target string) (models.ExcangeRate, error) {
+func (s *ExchangeService) GetRateByCode(base, target string) (models.ExchangeRate, error) {
 	return s.repo.GetRateByCode(base, target)
 }
 
-func (s *ExchangeService) CreateExchangeRate(e models.ExcangeRate) (models.ExcangeRate, error) {
+func (s *ExchangeService) CreateExchangeRate(e models.ExchangeRate) (models.ExchangeRate, error) {
 	return s.repo.CreateNewExchangeRate(e)
 }
 
-func (s *ExchangeService) UpdateExchangeRate(e models.ExcangeRate) (models.ExcangeRate, error) {
+func (s *ExchangeService) UpdateExchangeRate(e models.ExchangeRate) (models.ExchangeRate, error) {
 	return s.repo.UpdateExchangeRate(e)
 }
 

@@ -1,6 +1,6 @@
 package models
 
-type ExcangeRate struct {
+type ExchangeRate struct {
 	ID             int64    `json:"id"`
 	BaseCurrency   Currency `json:"baseCurrency"`
 	TargetCurrency Currency `json:"targetCurrency"`
