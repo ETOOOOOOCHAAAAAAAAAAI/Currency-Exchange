@@ -1,0 +1,15 @@
+# Настройки IDE
+.idea/
+*.iml
+
+# Файлы баз данных
+*.db
+*.sqlite
+identifier.sqlite
+
+# Системные файлы macOS/Windows (на всякий случай)
+.DS_Store
+Thumbs.db
+
+# Скомпилированные файлы Go
+/Currency-exchange
